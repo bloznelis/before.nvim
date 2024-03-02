@@ -23,5 +23,5 @@ Track edit locations and jump back to them across buffers.
 ## To-Do
 * Prune location list. User shouldn't click "go-back" and go nowhere because last edit is at the same
 location cursor now.
-* Removal of closed buffer locations (or maybe reopen the closed buffer?)
+  * This is quite rare now, but still sometimes happens due to some edgecase. Probably need to loop around the list to find the next hop.
 * Limit edit location list size (make it configurable)
