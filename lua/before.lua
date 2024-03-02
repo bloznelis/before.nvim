@@ -3,6 +3,7 @@ local M = {}
 -- edit locations stack
 M.edit_locations = {}
 M.cursor = 1
+M.max_entries = 5
 
 local function is_position_within_bounds(bufnr, line)
   local total_lines = vim.api.nvim_buf_line_count(bufnr)
@@ -35,6 +36,11 @@ function M.track_edit()
     M.edit_locations[#M.edit_locations + 1] = location
     M.cursor = #M.edit_locations
   end
+
+  if #M.edit_locations > M.max_entries then
+    table.remove(M.edit_locations, 1)
+    M.cursor = M.max_entries
+  end
 end
 
 function M.jump_to_prev_edit()
@@ -42,20 +48,24 @@ function M.jump_to_prev_edit()
     local bufnr = vim.api.nvim_get_current_buf()
     local pos = vim.api.nvim_win_get_cursor(0) -- 0 gets the current window
     local current = { bufnr = bufnr, line = pos[1], col = pos[2] }
-    local location = M.edit_locations[M.cursor]
+    local location_cursor = M.cursor
+    local location = M.edit_locations[location_cursor]
 
-    -- If previous edit location is the same as current cursor, try a later one.
-    -- This accommodates for cursor still being in a just-edited-line.
-    if current.line == location.line then
-      location = M.edit_locations[M.cursor - 1]
-    end
+    if location then
+      -- If previous edit location is the same as current cursor, try a later one.
+      -- This accommodates for cursor still being in a just-edited-line.
+      if current.line == location.line then
+        location_cursor = M.cursor - 1
+        location = M.edit_locations[location_cursor]
+      end
 
-    dec_cursor()
+      dec_cursor()
 
-    if location and vim.api.nvim_buf_is_loaded(location.bufnr) then
-      if is_position_within_bounds(location.bufnr, location.line) then
+      if location and vim.api.nvim_buf_is_loaded(location.bufnr) and is_position_within_bounds(location.bufnr, location.line) then
         vim.api.nvim_win_set_buf(0, location.bufnr)
         vim.api.nvim_win_set_cursor(0, { location.line, location.col })
+      else
+        table.remove(M.edit_locations, location_cursor)
       end
     end
   else
