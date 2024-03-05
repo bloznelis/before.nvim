@@ -1,6 +1,6 @@
 # before.nvim
 ## Purpose
-Track edit locations and jump back to them across buffers.
+Track edit locations and jump back to them, like [changelist](https://neovim.io/doc/user/motion.html#changelist) across buffers.
 
 ## Installation
 ### lazy.nvim
