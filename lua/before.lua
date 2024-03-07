@@ -15,7 +15,8 @@ local function bufvalid(bufnr)
 end
 
 local function same_line(this_location, that_location)
-  return this_location.line == that_location.line and this_location.bufnr == that_location.bufnr
+  return this_location.line == that_location.line
+    and this_location.bufnr == that_location.bufnr
 end
 
 local function is_regular_buffer(bufnr)
@@ -23,8 +24,9 @@ local function is_regular_buffer(bufnr)
 end
 
 local function should_remove(location)
-  return not bufvalid(location.bufnr) or not within_bounds(location.bufnr, location.line) or
-      not is_regular_buffer(location.bufnr)
+  return not bufvalid(location.bufnr)
+    or not within_bounds(location.bufnr, location.line)
+    or not is_regular_buffer(location.bufnr)
 end
 
 function M.track_edit()
@@ -116,7 +118,7 @@ function M.jump_to_last_edit()
       vim.api.nvim_win_set_cursor(0, { new_location.line, new_location.col })
     end
   else
-    print("No edit locations stored.")
+    print('No edit locations stored.')
   end
 end
 
@@ -133,21 +135,21 @@ function M.jump_to_next_edit()
       vim.api.nvim_win_set_cursor(0, { new_location.line, new_location.col })
     end
   else
-    print("No edit locations stored.")
+    print('No edit locations stored.')
   end
 end
 
 M.defaults = {
-  history_size = 10
+  history_size = 10,
 }
 
 function M.setup(opts)
-  opts = vim.tbl_deep_extend("force", M.defaults, opts or {})
+  opts = vim.tbl_deep_extend('force', M.defaults, opts or {})
 
   M.max_entries = opts.history_size
 
-  vim.api.nvim_create_autocmd({ "TextChanged", "InsertEnter" }, {
-    pattern = "*",
+  vim.api.nvim_create_autocmd({ 'TextChanged', 'InsertEnter' }, {
+    pattern = '*',
     callback = function()
       require('before').track_edit()
     end,
