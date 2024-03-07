@@ -9,7 +9,7 @@ M.history_wrap_enabled = nil
 local function within_bounds(bufnr, line)
   local total_lines = vim.api.nvim_buf_line_count(bufnr)
 
-  return line > 1 and line < total_lines
+  return line > 0 and line < total_lines + 1
 end
 
 local function bufvalid(bufnr)
@@ -36,6 +36,7 @@ local function assign_location(new_location, location_idx, new_cursor)
   if same_line_history_idx then
     table.remove(M.edit_locations, same_line_history_idx)
     location_idx = location_idx - 1
+    new_cursor = new_cursor - 1
   end
 
   M.edit_locations[location_idx] = new_location
@@ -48,7 +49,7 @@ function M.track_edit()
   local pos = vim.api.nvim_win_get_cursor(0)
   local location = { bufnr = bufnr, line = pos[1], col = pos[2] }
 
-  if is_regular_buffer(bufnr) then
+  if is_regular_buffer(bufnr) and within_bounds(location.bufnr, location.line) then
     assign_location(location, #M.edit_locations + 1, #M.edit_locations + 1)
   end
 
