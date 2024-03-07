@@ -1,6 +1,7 @@
 local M = {}
 
 M.edit_locations = {}
+M.dedupe_table = {}
 M.cursor = 1
 M.max_entries = nil
 M.history_wrap_enabled = nil
@@ -28,22 +29,27 @@ local function should_remove(location)
       not is_regular_buffer(location.bufnr)
 end
 
+local function assign_location(new_location, location_idx, new_cursor)
+  local key = string.format("%d;%d", new_location.line, new_location.bufnr)
+
+  local same_line_history_idx = M.dedupe_table[key]
+  if same_line_history_idx then
+    table.remove(M.edit_locations, same_line_history_idx)
+    location_idx = location_idx - 1
+  end
+
+  M.edit_locations[location_idx] = new_location
+  M.cursor = new_cursor
+  M.dedupe_table[key] = #M.edit_locations
+end
+
 function M.track_edit()
   local bufnr = vim.api.nvim_get_current_buf()
   local pos = vim.api.nvim_win_get_cursor(0)
   local location = { bufnr = bufnr, line = pos[1], col = pos[2] }
-  local prev_location = M.edit_locations[#M.edit_locations]
 
   if is_regular_buffer(bufnr) then
-    if prev_location then
-      if not same_line(location, prev_location) then
-        M.edit_locations[#M.edit_locations + 1] = location
-        M.cursor = #M.edit_locations
-      end
-    else
-      M.edit_locations[#M.edit_locations + 1] = location
-      M.cursor = #M.edit_locations
-    end
+    assign_location(location, #M.edit_locations + 1, #M.edit_locations + 1)
   end
 
   if #M.edit_locations > M.max_entries then
