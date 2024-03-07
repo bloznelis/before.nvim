@@ -1,32 +1,50 @@
 local M = {}
 
+---@class EditLocation
+---@field bufnr integer
+---@field line integer
+---@field col integer
+
+---@type EditLocation[]
 M.edit_locations = {}
+
+---@type integer
 M.cursor = 1
+
+---@type integer?
 M.max_entries = nil
 
+---@param bufnr integer
+---@param line integer
 local function within_bounds(bufnr, line)
   local total_lines = vim.api.nvim_buf_line_count(bufnr)
 
   return line > 1 and line < total_lines
 end
 
+---@param bufnr integer
 local function bufvalid(bufnr)
   return vim.api.nvim_buf_is_loaded(bufnr) and vim.api.nvim_buf_is_valid(bufnr)
 end
 
+---@param this_location EditLocation
+---@param that_location EditLocation
 local function same_line(this_location, that_location)
   return this_location.line == that_location.line and this_location.bufnr == that_location.bufnr
 end
 
+---@param bufnr integer
 local function is_regular_buffer(bufnr)
   return vim.api.nvim_buf_get_option(bufnr, 'buftype') == ''
 end
 
+---@param location EditLocation
 local function should_remove(location)
   return not bufvalid(location.bufnr) or not within_bounds(location.bufnr, location.line) or
       not is_regular_buffer(location.bufnr)
 end
 
+---@return nil
 function M.track_edit()
   local bufnr = vim.api.nvim_get_current_buf()
   local pos = vim.api.nvim_win_get_cursor(0)
@@ -51,6 +69,8 @@ function M.track_edit()
   end
 end
 
+---@param currentLocation EditLocation
+---@return EditLocation?
 local function find_backwards_jump(currentLocation)
   local local_cursor = M.cursor
   local lookback_amount = M.cursor
@@ -77,6 +97,8 @@ local function find_backwards_jump(currentLocation)
   end
 end
 
+---@param currentLocation EditLocation
+---@return EditLocation?
 local function find_forward_jump(currentLocation)
   local local_cursor = M.cursor
   local lookback_amount = M.cursor
@@ -103,6 +125,7 @@ local function find_forward_jump(currentLocation)
   end
 end
 
+---@return nil
 function M.jump_to_last_edit()
   if #M.edit_locations > 0 then
     local bufnr = vim.api.nvim_get_current_buf()
@@ -120,6 +143,7 @@ function M.jump_to_last_edit()
   end
 end
 
+---@return nil
 function M.jump_to_next_edit()
   if #M.edit_locations > 0 then
     local bufnr = vim.api.nvim_get_current_buf()
@@ -137,10 +161,13 @@ function M.jump_to_next_edit()
   end
 end
 
+---@class BeforeConfiguration
+---@field history_size integer
 M.defaults = {
   history_size = 10
 }
 
+---@param opts BeforeConfiguration?
 function M.setup(opts)
   opts = vim.tbl_deep_extend("force", M.defaults, opts or {})
 
