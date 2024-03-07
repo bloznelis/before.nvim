@@ -3,6 +3,7 @@ local M = {}
 M.edit_locations = {}
 M.cursor = 1
 M.max_entries = nil
+M.history_wrap_enabled = nil
 
 local function within_bounds(bufnr, line)
   local total_lines = vim.api.nvim_buf_line_count(bufnr)
@@ -54,7 +55,7 @@ end
 local function find_backwards_jump(currentLocation)
   local local_cursor = M.cursor
   local lookback_amount = M.cursor
-  for i = 1, lookback_amount do
+  for i = 0, lookback_amount do
     local_cursor = local_cursor - i
     local location = M.edit_locations[local_cursor]
 
@@ -68,19 +69,23 @@ local function find_backwards_jump(currentLocation)
     end
   end
 
-  local fallback_location = M.edit_locations[#M.edit_locations]
-  if fallback_location and should_remove(fallback_location) then
-    table.remove(M.edit_locations, #M.edit_locations)
+  if M.history_wrap_enabled then
+    local fallback_location = M.edit_locations[#M.edit_locations]
+    if fallback_location and should_remove(fallback_location) then
+      table.remove(M.edit_locations, #M.edit_locations)
+    else
+      M.cursor = #M.edit_locations
+      return fallback_location
+    end
   else
-    M.cursor = #M.edit_locations
-    return fallback_location
+    print("[before.nvim]: At the end of the edits list.")
   end
 end
 
 local function find_forward_jump(currentLocation)
   local local_cursor = M.cursor
   local lookback_amount = M.cursor
-  for i = 1, lookback_amount do
+  for i = 0, lookback_amount do
     local_cursor = local_cursor + i
     local location = M.edit_locations[local_cursor]
 
@@ -94,12 +99,16 @@ local function find_forward_jump(currentLocation)
     end
   end
 
-  local fallback_location = M.edit_locations[1]
-  if fallback_location and should_remove(fallback_location) then
-    table.remove(M.edit_locations, 1)
+  if M.history_wrap_enabled then
+    local fallback_location = M.edit_locations[1]
+    if fallback_location and should_remove(fallback_location) then
+      table.remove(M.edit_locations, 1)
+    else
+      M.cursor = 1
+      return fallback_location
+    end
   else
-    M.cursor = 1
-    return fallback_location
+    print("[before.nvim]: At the front of the edits list.")
   end
 end
 
@@ -116,7 +125,7 @@ function M.jump_to_last_edit()
       vim.api.nvim_win_set_cursor(0, { new_location.line, new_location.col })
     end
   else
-    print("No edit locations stored.")
+    print("[before.nvim]: No edit locations stored.")
   end
 end
 
@@ -133,18 +142,20 @@ function M.jump_to_next_edit()
       vim.api.nvim_win_set_cursor(0, { new_location.line, new_location.col })
     end
   else
-    print("No edit locations stored.")
+    print("[before.nvim]: No edit locations stored.")
   end
 end
 
 M.defaults = {
-  history_size = 10
+  history_size = 10,
+  history_wrap_enabled = false
 }
 
 function M.setup(opts)
   opts = vim.tbl_deep_extend("force", M.defaults, opts or {})
 
   M.max_entries = opts.history_size
+  M.history_wrap_enabled = opts.history_wrap_enabled
 
   vim.api.nvim_create_autocmd({ "TextChanged", "InsertEnter" }, {
     pattern = "*",
