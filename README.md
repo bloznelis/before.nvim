@@ -2,7 +2,7 @@
 ## Purpose
 Track edit locations and jump back to them, like [changelist](https://neovim.io/doc/user/motion.html#changelist), but across buffers.
 
-![peeked](https://github.com/bloznelis/before.nvim/assets/33397865/d7d8c79e-e716-4588-b602-2271fb0bda1e)
+![peeked](https://github.com/bloznelis/before.nvim/assets/33397865/dc60139e-4abc-4766-88f2-cb14f256e8f9)
 
 ## Installation
 ### lazy.nvim
