@@ -1,4 +1,5 @@
 # before.nvim
+
 ## Purpose
 Track edit locations and jump back to them, like [changelist](https://neovim.io/doc/user/motion.html#changelist), but across buffers.
 
@@ -13,8 +14,12 @@ Track edit locations and jump back to them, like [changelist](https://neovim.io/
     local before = require('before')
     before.setup()
 
+    -- Jump to previous entry in the edit history
     vim.keymap.set('n', '<C-h>', before.jump_to_last_edit, {})
+    -- Jump to next entry in the edit history
     vim.keymap.set('n', '<C-l>', before.jump_to_next_edit, {})
+    -- Move edit history to quickfix and open it (or telescope)
+    vim.keymap.set('n', '<leader>oe', before.show_edits, {})
   end
 }
 ```
@@ -24,7 +29,9 @@ Track edit locations and jump back to them, like [changelist](https://neovim.io/
 require('before').setup({
   -- How many edit locations to store in memory (default: 10)
   history_size = 42
-  -- Should it wrap around the ends of the edit history (default: false)
+  -- Wrap around the ends of the edit history (default: false)
   history_wrap_enabled = true
+  -- Use telescope quickfix picker for `show_edits` command (default: false)
+  telescope_for_preview = true
 })
 ```

@@ -3,6 +3,7 @@ local M = {}
 M.edit_locations = {}
 M.dedupe_table = {}
 M.cursor = 1
+
 M.max_entries = nil
 M.history_wrap_enabled = nil
 
@@ -30,7 +31,7 @@ local function should_remove(location)
 end
 
 local function assign_location(new_location, location_idx, new_cursor)
-  local key = string.format("%d;%d", new_location.line, new_location.bufnr)
+  local key = string.format("%s:%d", new_location.file, new_location.line)
 
   local same_line_history_idx = M.dedupe_table[key]
   if same_line_history_idx then
@@ -44,27 +45,19 @@ local function assign_location(new_location, location_idx, new_cursor)
   M.dedupe_table[key] = #M.edit_locations
 end
 
-function M.track_edit()
-  local bufnr = vim.api.nvim_get_current_buf()
-  local pos = vim.api.nvim_win_get_cursor(0)
-  local location = { bufnr = bufnr, line = pos[1], col = pos[2] }
-
-  if is_regular_buffer(bufnr) and within_bounds(location.bufnr, location.line) then
-    assign_location(location, #M.edit_locations + 1, #M.edit_locations + 1)
-  end
-
-  if #M.edit_locations > M.max_entries then
-    table.remove(M.edit_locations, 1)
-    M.cursor = M.max_entries
-  end
-end
-
 local function find_backwards_jump(currentLocation)
   local local_cursor = M.cursor
   local lookback_amount = M.cursor
   for i = 0, lookback_amount do
     local_cursor = local_cursor - i
     local location = M.edit_locations[local_cursor]
+
+    if location and not bufvalid(location.bufnr) then
+      vim.cmd('e ' .. location.file)
+      local new_bufnr = vim.api.nvim_get_current_buf()
+      location['bufnr'] = new_bufnr
+      M.edit_locations[local_cursor] = location
+    end
 
     if location and should_remove(location) then
       table.remove(M.edit_locations, local_cursor)
@@ -96,6 +89,13 @@ local function find_forward_jump(currentLocation)
     local_cursor = local_cursor + i
     local location = M.edit_locations[local_cursor]
 
+    if location and not bufvalid(location.bufnr) then
+      vim.cmd('e ' .. location.file)
+      local new_bufnr = vim.api.nvim_get_current_buf()
+      location['bufnr'] = new_bufnr
+      M.edit_locations[local_cursor] = location
+    end
+
     if location and should_remove(location) then
       table.remove(M.edit_locations, local_cursor)
     else
@@ -116,6 +116,59 @@ local function find_forward_jump(currentLocation)
     end
   else
     print("[before.nvim]: At the front of the edits list.")
+  end
+end
+
+local function load_file_line(file, linenum)
+  local cnt = 1
+  for line in io.lines(file) do
+    if cnt == linenum then
+      return line
+    end
+    cnt = cnt + 1
+  end
+
+  return ''
+end
+
+local function load_buf_line(bufnr, linenum)
+  return vim.api.nvim_buf_get_lines(bufnr, linenum - 1, linenum, false)[1]
+end
+
+function M.show_edits()
+  local qf_entries = {}
+  for _, location in pairs(M.edit_locations) do
+    if bufvalid(location.bufnr) then
+      local line_content = load_buf_line(location.bufnr, location.line)
+      table.insert(qf_entries, { bufnr = location.bufnr, lnum = location.line, col = location.col, text = line_content })
+    else
+      local line_content = load_file_line(location.file, location.line)
+      table.insert(qf_entries,
+        { filename = location.file, lnum = location.line, col = location.col, text = line_content })
+    end
+  end
+
+  vim.fn.setqflist(qf_entries, 'r')
+  if M.telescope_for_preview then
+    require('telescope.builtin').quickfix()
+  else
+    vim.cmd('copen')
+  end
+end
+
+function M.track_edit()
+  local bufnr = vim.api.nvim_get_current_buf()
+  local file = vim.fn.expand("%:p")
+  local pos = vim.api.nvim_win_get_cursor(0)
+  local location = { bufnr = bufnr, line = pos[1], col = pos[2], file = file }
+
+  if is_regular_buffer(bufnr) and within_bounds(location.bufnr, location.line) then
+    assign_location(location, #M.edit_locations + 1, #M.edit_locations + 1)
+  end
+
+  if #M.edit_locations > M.max_entries then
+    table.remove(M.edit_locations, 1)
+    M.cursor = M.max_entries
   end
 end
 
@@ -155,7 +208,8 @@ end
 
 M.defaults = {
   history_size = 10,
-  history_wrap_enabled = false
+  history_wrap_enabled = false,
+  telescope_for_preview = false
 }
 
 function M.setup(opts)
@@ -163,6 +217,7 @@ function M.setup(opts)
 
   M.max_entries = opts.history_size
   M.history_wrap_enabled = opts.history_wrap_enabled
+  M.telescope_for_preview = opts.telescope_for_preview
 
   vim.api.nvim_create_autocmd({ "TextChanged", "InsertEnter" }, {
     pattern = "*",
