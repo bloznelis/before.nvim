@@ -18,7 +18,7 @@ Track edit locations and jump back to them, like [changelist](https://neovim.io/
     vim.keymap.set('n', '<C-h>', before.jump_to_last_edit, {})
     -- Jump to next entry in the edit history
     vim.keymap.set('n', '<C-l>', before.jump_to_next_edit, {})
-    -- Move edit history to quickfix and open it (or telescope)
+    -- Move edit history to quickfix (or telescope)
     vim.keymap.set('n', '<leader>oe', before.show_edits, {})
   end
 }
