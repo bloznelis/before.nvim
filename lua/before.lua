@@ -135,7 +135,7 @@ local function load_buf_line(bufnr, linenum)
   return vim.api.nvim_buf_get_lines(bufnr, linenum - 1, linenum, false)[1]
 end
 
-function M.show_edits()
+function M.show_edits(picker_opts)
   local qf_entries = {}
   for _, location in pairs(M.edit_locations) do
     if bufvalid(location.bufnr) then
@@ -150,7 +150,7 @@ function M.show_edits()
 
   vim.fn.setqflist(qf_entries, 'r')
   if M.telescope_for_preview then
-    require('telescope.builtin').quickfix()
+    require('telescope.builtin').quickfix(picker_opts or {})
   else
     vim.cmd('copen')
   end
