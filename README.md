@@ -20,8 +20,11 @@ Track edit locations and jump back to them, like [changelist](https://neovim.io/
     -- Jump to next entry in the edit history
     vim.keymap.set('n', '<C-l>', before.jump_to_next_edit, {})
 
-    -- Move edit history to quickfix (or telescope)
-    vim.keymap.set('n', '<leader>oe', before.show_edits, {})
+    -- Show and look for previous edits in telescope
+    vim.keymap.set('n', '<leader>oe', before.show_edits_in_telescope, {})
+
+    -- Show and look for previous edits in quickfix list
+    vim.keymap.set('n', '<leader>oq', before.show_edits_in_quickfix, {})
   end
 }
 ```
@@ -34,14 +37,12 @@ require('before').setup({
   history_size = 42
   -- Wrap around the ends of the edit history (default: false)
   history_wrap_enabled = true
-  -- Use telescope quickfix picker for `show_edits` command (default: false)
-  telescope_for_preview = true
 })
 ```
 #### Telescope picker
 ```lua
--- Provide custom opts to telescope picker as show_edits argument:
+-- You can provide telescope opts to the picker via show_edits_in_telescope arguments:
 vim.keymap.set('n', '<leader>oe', function()
-  before.show_edits(require('telescope.themes').get_dropdown())
+  before.show_edits_in_telescope(require('telescope.themes').get_dropdown())
 end, {})
 ```

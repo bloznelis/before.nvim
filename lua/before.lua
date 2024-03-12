@@ -53,7 +53,7 @@ local function find_backwards_jump(currentLocation)
     local location = M.edit_locations[local_cursor]
 
     if location and not bufvalid(location.bufnr) then
-      vim.cmd('e ' .. location.file)
+      vim.cmd.edit(location.file)
       local new_bufnr = vim.api.nvim_get_current_buf()
       location['bufnr'] = new_bufnr
       M.edit_locations[local_cursor] = location
@@ -90,7 +90,7 @@ local function find_forward_jump(currentLocation)
     local location = M.edit_locations[local_cursor]
 
     if location and not bufvalid(location.bufnr) then
-      vim.cmd('e ' .. location.file)
+      vim.cmd.edit(location.file)
       local new_bufnr = vim.api.nvim_get_current_buf()
       location['bufnr'] = new_bufnr
       M.edit_locations[local_cursor] = location
@@ -119,11 +119,15 @@ local function find_forward_jump(currentLocation)
   end
 end
 
+local function trim(s)
+  return (s:gsub("^%s*(.-)%s*$", "%1"))
+end
+
 local function load_file_line(file, linenum)
   local cnt = 1
   for line in io.lines(file) do
     if cnt == linenum then
-      return line
+      return trim(line)
     end
     cnt = cnt + 1
   end
@@ -132,27 +136,77 @@ local function load_file_line(file, linenum)
 end
 
 local function load_buf_line(bufnr, linenum)
-  return vim.api.nvim_buf_get_lines(bufnr, linenum - 1, linenum, false)[1]
+  return trim(vim.api.nvim_buf_get_lines(bufnr, linenum - 1, linenum, false)[1])
 end
 
-function M.show_edits(picker_opts)
+local function get_line_content(location)
+  local line_content = nil
+
+  if bufvalid(location.bufnr) then
+    line_content = load_buf_line(location.bufnr, location.line)
+  else
+    line_content = load_file_line(location.file, location.line)
+  end
+
+  if line_content == '' then
+    line_content = "[EMPTY-LINE]"
+  end
+  return line_content
+end
+
+local pickers = require('telescope.pickers')
+local finders = require('telescope.finders')
+local conf = require('telescope.config').values
+
+function M.show_edits_in_telescope(opts)
+  local default_opts = {
+    prompt_title = "Edit Locations",
+    finder = finders.new_table({
+      results = M.edit_locations,
+      entry_maker = function(entry)
+        local line_content = get_line_content(entry)
+        return {
+          value = entry.file .. entry.line,
+          display = entry.line .. ':' .. entry.bufnr .. '| ' .. line_content,
+          ordinal = entry.line .. ':' .. entry.bufnr .. '| ' .. line_content,
+          filename = entry.file,
+          bufnr = entry.bufnr,
+          lnum = entry.line,
+          col = entry.col,
+        }
+      end,
+    }),
+    sorter = conf.generic_sorter({}),
+    previewer = require('telescope.config').values.grep_previewer({}),
+  }
+
+  opts = vim.tbl_deep_extend("force", default_opts, opts or {})
+
+  pickers.new({ preview_title = "Preview" }, opts):find()
+end
+
+function M.show_edits_in_quickfix()
   local qf_entries = {}
   for _, location in pairs(M.edit_locations) do
+    local line_content = get_line_content(location)
     if bufvalid(location.bufnr) then
-      local line_content = load_buf_line(location.bufnr, location.line)
       table.insert(qf_entries, { bufnr = location.bufnr, lnum = location.line, col = location.col, text = line_content })
     else
-      local line_content = load_file_line(location.file, location.line)
       table.insert(qf_entries,
         { filename = location.file, lnum = location.line, col = location.col, text = line_content })
     end
   end
 
-  vim.fn.setqflist(qf_entries, 'r')
+  vim.fn.setqflist({}, 'r', { title = 'Edit Locations', items = qf_entries })
+  vim.cmd([[copen]])
+end
+
+-- DEPRECATED, but don't want to brake the users by removing.
+function M.show_edits(picker_opts)
   if M.telescope_for_preview then
-    require('telescope.builtin').quickfix(picker_opts or {})
+    M.show_edits_in_telescope(picker_opts)
   else
-    vim.cmd('copen')
+    M.show_edits_in_quickfix()
   end
 end
 
@@ -209,6 +263,7 @@ end
 M.defaults = {
   history_size = 10,
   history_wrap_enabled = false,
+  -- DEPRECATED, but don't want to brake the users by removing.
   telescope_for_preview = false
 }
 
