@@ -154,11 +154,11 @@ local function get_line_content(location)
   return line_content
 end
 
-local pickers = require('telescope.pickers')
-local finders = require('telescope.finders')
-local conf = require('telescope.config').values
-
 function M.show_edits_in_telescope(opts)
+  local pickers = require('telescope.pickers')
+  local finders = require('telescope.finders')
+  local conf = require('telescope.config').values
+
   local default_opts = {
     prompt_title = "Edit Locations",
     finder = finders.new_table({
@@ -177,7 +177,7 @@ function M.show_edits_in_telescope(opts)
       end,
     }),
     sorter = conf.generic_sorter({}),
-    previewer = require('telescope.config').values.grep_previewer({}),
+    previewer = conf.grep_previewer({}),
   }
 
   opts = vim.tbl_deep_extend("force", default_opts, opts or {})
