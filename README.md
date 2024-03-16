@@ -41,7 +41,7 @@ require('before').setup({
 ```
 #### Telescope picker
 ```lua
--- You can provide telescope opts to the picker via show_edits_in_telescope arguments:
+-- You can provide telescope opts to the picker as show_edits_in_telescope argument:
 vim.keymap.set('n', '<leader>oe', function()
   before.show_edits_in_telescope(require('telescope.themes').get_dropdown())
 end, {})
