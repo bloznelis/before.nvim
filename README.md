@@ -46,3 +46,24 @@ vim.keymap.set('n', '<leader>oe', function()
   before.show_edits_in_telescope(require('telescope.themes').get_dropdown())
 end, {})
 ```
+
+#### Register Telescope extension
+
+You may also register the extension via telescope:
+
+```lua
+require 'telescope'.setup({ '$YOUR_TELESCOPE_OPTS' })
+require 'telescope'.load_extension('before')
+```
+
+Then call via vimscript:
+
+```vim
+:Telescope before
+```
+
+or lua:
+
+```lua
+require 'telescope'.extensions.before.before
+```
