@@ -34,7 +34,7 @@ Track edit locations and jump back to them, like [changelist](https://neovim.io/
 ```lua
 require('before').setup({
   -- How many edit locations to store in memory (default: 10)
-  history_size = 42
+  history_size = 42,
   -- Wrap around the ends of the edit history (default: false)
   history_wrap_enabled = true
 })
